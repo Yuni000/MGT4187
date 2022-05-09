@@ -1,6 +1,5 @@
 Code of Wordcloud
-
-====================
+=====================
 Author: Casters(118010022 Chen Tonglei)
 
 # Introduction
