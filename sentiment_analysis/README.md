@@ -13,7 +13,7 @@ Here is one example of running the code.
 
 `cd your_path/sentiment_analysis/sentiment_analysis_for_life`  
 
-`python3 sentiment_analysis_for_entertainment.py`  
+`python3 sentiment_analysis_for_life.py`  
 
 (This command changes according to the command of running Python 3)
 
