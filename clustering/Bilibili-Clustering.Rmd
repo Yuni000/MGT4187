@@ -1,0 +1,313 @@
+---
+title: 'Solution: K-Means Clustering for Customer Segmentation'
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+
+```{r include=FALSE}
+# If you are using Windows and cannot proceed with the installation and package loading, you might need to run the following codes in this chunk:
+
+#install.packages("installr",repos = "http://cran.us.r-project.org")
+#library(installr)
+
+#install.rtools()
+#install.pandoc()
+```
+
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+
+#install.packages("knitr", repos = "http://cran.us.r-project.org")
+#install.packages("dplyr", repos = "http://cran.us.r-project.org")
+#install.packages("kableExtra", repos = "http://cran.us.r-project.org")
+#install.packages("readxl", repos = "http://cran.us.r-project.org")
+#install.packages("lme4", repos = "http://cran.us.r-project.org")
+#install.packages("stats", repos = "http://cran.us.r-project.org")
+#install.packages("corrplot", repos = "http://cran.us.r-project.org")
+#install.packages("RColorBrewer", repos = "http://cran.us.r-project.org")
+#install.packages("factoextra", repos = "http://cran.us.r-project.org")
+#install.packages("attempt")
+#install.packages("FeatureImpCluster")
+#install.packages("flexclust")
+
+
+
+library(knitr)
+library(dplyr)
+library(kableExtra)
+library(readxl)
+library(lme4)
+library(stats)
+library(ggplot2)
+library(corrplot)
+library(RColorBrewer)
+library(factoextra)
+library(FeatureImpCluster)
+library(attempt)
+library(flexclust)
+
+
+knitr::opts_chunk$set(echo = TRUE)
+set.seed(123)
+```
+
+<br/>
+<br/>
+
+
+## Preparation and Set Up
+
+Before we start, let us do some preparation work to get ready!
+
+We need to: 
+
+* Create a folder and set working directory to that folder on your device,
+
+* Download datasets needed for this tutorial onto your working directory, and
+
+* Load datasets for analysis later as we proceed
+
+In order to load the datasets to R, we need to run only **part** of the following chunk of codes, depending on the **operating system** of your device. To avoid running the codes that are not applicable and receiving error messages, please add "#" before each line of non-applicable codes in the chunk below. For example, if you are using a Mac, you need to put "#" before code *setwd("H:/downloads/kmeans")*.
+
+
+
+```{r warning=FALSE}
+# Please run the following codes depending on the operating system on your laptop/PC. 
+
+# if you are using iOS, and your *kmeans* folder is created under "Downloads" on your Mac: you will need to first set your working directory to *kmeans* folder:
+
+setwd("~/Downloads/kmeans")
+
+# if you are using Windows, and your *kmeans* folder is created in your H drive: you will need to first set your working directory to *kmeans* folder:
+
+#setwd("H:/downloads/kmeans")
+
+# load the dataset
+data <- read.csv("user-clustering.csv")
+```
+
+</br>
+</br>
+
+**Now we are ready to go!**
+
+</br>
+</br>
+
+
+**Customer segmentation** is the process that divides a market into sub-groups that share certain characteristics, such as geographical, behavioral, and demographic information. It is a powerful tool that helps businesses target their potential customers and develop appealing products and services. 
+
+To achieve this, we decided to use **K-Means clustering** in this R file. K-means clustering is the most commonly used algorithm for partitioning a given data set into a set of k groups (i.e. k clusters), where k represents the number of groups and is pre-specified by us. It classifies objects in multiple clusters, such that objects within the same cluster are as similar as possible (i.e., high intra-class similarity), whereas objects from different clusters are as dissimilar as possible (i.e., low inter-class similarity). In k-means clustering, each cluster is represented by its center (i.e, centroid) which corresponds to the mean of points assigned to the cluster.
+
+
+Once we perform the cluster analysis, we need to determine the *optimal number of clusters*. In this R file, we determined the number of clusters using the **Average Silhouette Method**, **Elbow Method**. Further explanations via this link: https://uc-r.github.io/kmeans_clustering#gap
+
+
+</br>
+</br>
+
+We obtain a dataset containing details of 20,044 users who have posted comments in Top 10 videos of the Entertainment Area hot list. In this R file we are going to help Bilibili to use segmentation techniques to offer targeting advices. 
+
+### Data Visualisations
+
+Here is a brief pre-view of the first 10 rows of our dataset: 
+word column (means the length of sentence) is used to calculate attitude, and for community quality, it is not a big concern that the length of comments are long. Therefore, for further analysis it is eliminated.
+
+```{r echo=FALSE}
+data_view <- data [1:23195,1:12]
+data_view<- data_view %>% distinct(uid,.keep_all = TRUE)
+
+na.omit(data_view)
+
+```
+
+<br/>
+
+Here is a brief description of each variable in the dataset:
+
+* *like* is the number of likes of the comment user sent.
+
+* *level* is the level of user.
+
+* *word* refers to the length (word count) of sentences; 
+
+* *upload_video* refers to the number of user's uploaded videos; 
+
+* *cinema* records the number of movies/ TV dramas that users have seen; 
+
+* *bangumi* is the number of animations that users have seen; 
+
+* *like_num* determines the number of likes of the videos user previously sent.
+
+* *follow* determines users' following number. 关注
+
+* *fans* determines users fans number.
+
+* *attitude* determines the attitude of comments calculating by packages.
+
+
+
+<br/>
+<br/>
+
+We can further visualise the dataset and understand variable distributions across properties by first plotting histogram for each variable and then examining the correlation between each pair of variables. 
+
+Plotting histograms of variables can help us get a better grasp of data distribution. 
+
+```{r}
+# Plot histogram per variable
+
+hist(data_view$attitude, border="light blue", col="light blue")
+hist(data_view$follow, border="light blue", col="light blue")
+hist(data_view$cinema, border="light blue", col="light blue")
+hist(data_view$bangumi, border="light blue", col="light blue")
+hist(data_view$upload_video, border="pink", col="pink")
+hist(data_view$like, border="pink", col="pink")
+hist(data_view$like_num, border="pink", col="pink")
+hist(data_view$fans, border="pink", col="pink")
+hist(data_view$level, border="pink", col="pink")
+
+```
+
+The correlation analysis results can inform us which segmentation criteria might be considered. It is commonly a good practice to pick variables that are weakly correlated. (< 0.5 are weakly correlated; 0.5 to 0.7 are moderately correlated) Using variables with high correlation for segmentation will result in less informative results. There is no highly correlated attributes so that there is no redundant criteria.
+
+
+```{r}
+
+#Plot correlation analysis 
+
+Clusterdata <- data_view[,c(3:4,6:12)]
+Clusterdata <- scale(Clusterdata,center=T,scale=T)
+
+
+
+M <-cor(Clusterdata)
+corrplot(M, type="upper", order="hclust")
+
+
+#col <- colorRampPalette(c("#FB7299", "#FFFFFF", "#23ADE5"))
+col <- colorRampPalette(c("#23ADE5", "#FFFFFF","#FB7299"))
+#col <- colorRampPalette(c("#FFFFFF","#23ADE5","#FB7299"))
+corrplot(M, method="color", col=col(200),  
+         type="upper", order="hclust", 
+         addCoef.col = "black", # Add coefficient of correlation
+         tl.col="black", tl.srt=45, #Text label color and rotation
+         )
+```
+
+<br/>
+<br/>
+
+
+
+
+
+
+
+
+### Average Silhouette Method
+
+The average silhouette approach determines the average distance between clusters, or average silhouette width. The method computes the average silhouette for different numbers of clusters (i.e., different values of k). A **high** average silhouette width indicates a good clustering. 
+
+We can use the *fviz_nbclust* function in the *cluster* package to compuate the average silhouette width. The following code computes this approach for 1-15 clusters (you may change the maximum number of clusters by changing the option *k.max*). 
+
+```{r}
+# Optimal number of clusters: Average Silhouette Method
+
+silhouette <- fviz_nbclust(Clusterdata, kmeans, method = "silhouette", k.max=15)
+silhouette
+```
+
+It seems that Average Silhouette Method informs us that 2,3,4 should be the optimal number of clusters. We may plot each of them to visually inspect if the resulting clusters are meaningful with strategic implications. 
+
+
+<br/>
+<br/>
+
+
+Elbow method is also used to check the optimal number of clusters. Since it overflows in R, we use python to calculate by elbow method. Please refer to the python file.
+```{r}
+# Optimal number of clusters: Elbow Method
+#Since data are of a large amount, it can not be processed in R. Therefore, this part is done in Python.
+
+#wss <- fviz_nbclust(Clusterdata, kmeans, method = "wss", k.max=8)
+#wss
+```
+
+
+Judging from the plot below, we find that the three clusters are clearly distinct in terms of posting habits (Dim.2) per watching habits (Dim.1) (Details can be find in pca.Rmd file indicating the meanings of each dimensions, since fviz_cluster uses PCA dimension to plot. ), with cluster 1 being the creators, cluster 2 the enthusiasts, and cluster 3 the mass. 
+
+Cluster1 - Creators: Cluster1 achieves high marks in upload video, like num, and fans, which indicates they are active video uploaders. Although Cluster1 has a small proportion of 0.1%, we consider them as an effective cluster. Firstly, this proportion is close to the proportion of uploaders all over the Bilibili platform. According to Bilibili official creator report, the overall portion is 1% (2.7 million
+creators / 272 million users). Besides, the group of creators is an important crowd in Bilibili platform as the content producers. Therefore, we keep this cluster and name them as creators.
+Cluster2 - Enthusiasts: Cluster2 performs well in level, cinema, bangumi, and follow, which means they are active video audience of many movies, animations, and UGC videos, thus having a relatively high level. Therefore, we name Cluster2 as enthusiasts because they are addictive users of Bilibili.
+Cluster3 - Mass: We can distinguish that Cluster3 performs normally in every aspect. Therefore, we name them as mass which means normal users using Bilibili at a medium frequency.
+
+Means,and number of clusters are also shown.
+
+Overall speaking, different promotion incentive mechanisms can be offered to motivate customers to maintain the harmony of community.
+
+```{r warning=FALSE}
+set.seed(3)
+km_result <- kmeans(Clusterdata, 3, nstart = 25)
+km<-fviz_cluster(km_result, Clusterdata, geom = "point",
+             ellipse= TRUE, show.clust.cent = FALSE,
+             palette = c("#ea9999", "#53abd2", "#cccccc"), ggtheme = theme_classic())
+
+
+
+km
+km_result$centers
+km_result$size
+#km_result$cluster
+km_result$totss
+
+```
+
+Check for 2 and 4 clusters.
+```{r warning=FALSE}
+set.seed(3)
+km_result <- kmeans(Clusterdata, 4, nstart = 25)
+km<-fviz_cluster(km_result, Clusterdata, geom = "point",
+             ellipse= TRUE, show.clust.cent = FALSE,
+             palette = c("#ea9999", "#53abd2", "#cccccc","#fb7299"), ggtheme = theme_classic())
+
+# 自定义fill的颜色
+km + scale_fill_manual(values=c("#ea9999", "#53abd2", "#cccccc","#fb7299"), 
+                       name="Groups of Users",
+                       labels=c("G1: Mass","G2: Creator","G3: Enthusiast"))
+
+km
+km_result$centers
+km_result$size
+#km_result$cluster
+km_result$totss
+
+```
+
+Check for summary of data.
+```{r warning=FALSE}
+summary(km_result)
+summary(Clusterdata)
+```
+
+Export
+```{r warning=FALSE}
+
+dd <- cbind(data_view, cluster = km_result$cluster)
+head(dd)
+write.csv(dd,"/Users/chenqinye/Downloads/bilibili-withcluster.csv", row.names = FALSE)
+
+```
+
+<br/>
+
+
+Have fun! 
+
+
+<br/>
+<br/>
+

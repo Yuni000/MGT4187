@@ -1,0 +1,209 @@
+---
+title: 'Solution: PCA explanation'
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+
+```{r include=FALSE}
+# If you are using Windows and cannot proceed with the installation and package loading, you might need to run the following codes in this chunk:
+
+#install.packages("installr",repos = "http://cran.us.r-project.org")
+#library(installr)
+
+#install.rtools()
+#install.pandoc()
+```
+
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+
+#install.packages("knitr", repos = "http://cran.us.r-project.org")
+#install.packages("dplyr", repos = "http://cran.us.r-project.org")
+#install.packages("kableExtra", repos = "http://cran.us.r-project.org")
+#install.packages("readxl", repos = "http://cran.us.r-project.org")
+#install.packages("lme4", repos = "http://cran.us.r-project.org")
+#install.packages("stats", repos = "http://cran.us.r-project.org")
+#install.packages("corrplot", repos = "http://cran.us.r-project.org")
+#install.packages("RColorBrewer", repos = "http://cran.us.r-project.org")
+#install.packages("factoextra", repos = "http://cran.us.r-project.org")
+#install.packages("attempt")
+#install.packages("FeatureImpCluster")
+#install.packages("flexclust")
+
+
+
+library(knitr)
+library(dplyr)
+library(kableExtra)
+library(readxl)
+library(lme4)
+library(stats)
+library(ggplot2)
+library(corrplot)
+library(RColorBrewer)
+library(factoextra)
+library(FeatureImpCluster)
+library(attempt)
+library(flexclust)
+
+
+knitr::opts_chunk$set(echo = TRUE)
+set.seed(123)
+```
+
+<br/>
+<br/>
+
+
+## Preparation and Set Up
+
+Before we start, let us do some preparation work to get ready!
+
+We need to: 
+
+* Create a folder and set working directory to that folder on your device,
+
+* Download datasets needed for this tutorial onto your working directory, and
+
+* Load datasets for analysis later as we proceed
+
+
+The dataset of this tutorial is made available to you. The files is named *kmeans* and is stored in an *xlsx* format. 
+
+To save this datset and for convenience of analysis for this tutorial, let us create a folder in your computer for and name the folder *kmeans*. And then let us download the two files to the folder (*kmeans*) that you just created. 
+
+In order to load the datasets to R, we need to run only **part** of the following chunk of codes, depending on the **operating system** of your device. To avoid running the codes that are not applicable and receiving error messages, please add "#" before each line of non-applicable codes in the chunk below. For example, if you are using a Mac, you need to put "#" before code *setwd("H:/downloads/kmeans")*.
+
+
+
+```{r warning=FALSE}
+# Please run the following codes depending on the operating system on your laptop/PC. 
+
+# if you are using iOS, and your *kmeans* folder is created under "Downloads" on your Mac: you will need to first set your working directory to *kmeans* folder:
+
+setwd("~/Downloads/kmeans")
+
+# if you are using Windows, and your *kmeans* folder is created in your H drive: you will need to first set your working directory to *kmeans* folder:
+
+#setwd("H:/downloads/kmeans")
+
+# load the dataset
+data <- read.csv("user-clustering.csv")
+#summary(data)
+```
+
+</br>
+</br>
+
+**Now we are ready to go!**
+
+</br>
+</br>
+
+
+### Data Visualisations
+
+Here is a brief pre-view of the first 10 rows of our dataset: 
+
+```{r echo=FALSE}
+data_view <- data [1:23195,1:12]
+data_view<- data_view %>% distinct(uid,.keep_all = TRUE)
+
+na.omit(data_view)
+
+```
+
+<br/>
+
+Here is a brief description of each variable in the dataset:
+
+<br/>
+<br/>
+
+We can further visualise the dataset and understand variable distributions across properties by first plotting histogram for each variable and then examining the correlation between each pair of variables. 
+
+```{r}
+# Plot histogram per variable
+
+hist(data_view$attitude, border="light blue", col="light blue")
+hist(data_view$follow, border="light blue", col="light blue")
+hist(data_view$cinema, border="light blue", col="light blue")
+hist(data_view$like, border="pink", col="pink")
+hist(data_view$like_num, border="pink", col="pink")
+hist(data_view$fans, border="pink", col="pink")
+
+```
+
+This table is to show the principal components to represent the dimensions.
+
+```{r}
+
+#Plot correlation analysis 
+
+Clusterdata <- data_view[,c(3:4,6:12)]
+Clusterdata <- scale(Clusterdata,center=T,scale=T)
+
+#summary(Clusterdata)
+
+#library("factoextra")
+#data(Clusterdata)
+Clusterdata.active <- Clusterdata
+head(Clusterdata.active[, 1:7])
+
+pca_data = prcomp(Clusterdata, center = TRUE, scale = TRUE)
+summary(pca_data)
+```
+
+
+Showing the weight of each features to make up for dimensions.
+```{r}
+library(FactoMineR)
+Clusterdata <- data_view[,c(3:4,6:12)]
+Clusterdata <- scale(Clusterdata,center=T,scale=T)
+
+Clusterdata.active <- Clusterdata
+head(Clusterdata.active[, 1:9])
+
+
+pca_clust <- PCA(Clusterdata, 
+                scale.unit = FALSE,
+                graph = F, 
+                ncp = 9) 
+summary(pca_clust)
+
+
+```
+
+PCA graph showing the potential distribution.
+```{r}
+
+plot.PCA(pca_clust, 
+         choix = c("ind"),
+         habillage = 1,
+         select = "contrib5",
+         invisible = "quali")
+
+plot.PCA(pca_clust, choix = c("var"))
+```
+Plot the correlation of 2 dimensions.
+```{r}
+pca_dimdesc <- dimdesc(pca_clust)
+pca_dimdesc$Dim.1
+pca_dimdesc$Dim.2
+
+```
+
+
+
+<br/>
+
+
+Have fun! 
+
+
+<br/>
+<br/>
+
