@@ -44,3 +44,4 @@ plt.xticks(np.arange(1,14))
 plt.show()
 print(Sum)
 
+
