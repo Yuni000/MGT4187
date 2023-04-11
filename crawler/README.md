@@ -1,7 +1,7 @@
 Data Crawler of Bilibili
 =========================
 
-Author: Casters (118010022 Chen Tonglei)
+Author: Casters (118010022 Tonglei Chen)
 
 
 This is a document for data_crawler.py. Thousands of Proxy IP is needed, because of the anti-crawling mechanism of Bilibili. Tecent Cloud Server is used to accelerate process.
